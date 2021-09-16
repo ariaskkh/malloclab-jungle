@@ -345,20 +345,20 @@ void putFreeBlock(void *bp){
     free_listp = bp;
 }
 
-// // 항상 가용리스트 맨 뒤에 프롤로그 블록이 존재하고 있기 때문에 조건을 간소화할 수 있다.
-// void removeBlock(void *bp){
+// 항상 가용리스트 맨 뒤에 프롤로그 블록이 존재하고 있기 때문에 조건을 간소화할 수 있다.
+void removeBlock(void *bp){
 
-//     // 첫번째 블럭을 없앨 때
-//     if (bp == free_listp){
-//         PREP(SUCP(bp)) = NULL;
-//         free_listp = SUCP(bp);
-//     }
-//     // 앞 뒤 모두 있을 때
-//     else{
-//         SUCP(PREP(bp)) = SUCP(bp);
-//         PREP(SUCP(bp)) = PREP(bp);
-//     }
-// }
+    // 첫번째 블럭을 없앨 때
+    if (bp == free_listp){
+        PREP(SUCP(bp)) = NULL;
+        free_listp = SUCP(bp);
+    }
+    // 앞 뒤 모두 있을 때
+    else{
+        SUCP(PREP(bp)) = SUCP(bp);
+        PREP(SUCP(bp)) = PREP(bp);
+    }
+}
 
 void removeBlock2(void *bp){
 
