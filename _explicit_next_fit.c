@@ -138,15 +138,6 @@ static void *extend_heap(size_t words)
  */
 void *mm_malloc(size_t size)
 {
-    // int newsize = ALIGN(size + SIZE_T_SIZE);
-    // void *p = mem_sbrk(newsize);
-    // if (p == (void *)-1)
-	//     return NULL;
-    // else {
-    //     *(size_t *)p = size;
-    //     return (void *)((char *)p + SIZE_T_SIZE);
-    // }
-
     /* 책 내용 */
     size_t asize;      /* Adjusted block size */
     size_t extendsize; /* Amount to extend heap if no fit */
@@ -236,13 +227,6 @@ static void *coalesce(void *bp)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
-    // if (size <= 0){
-    //     mm_free(ptr);
-    //     return 0;
-    // }
-    // if (ptr == NULL){
-    //     return mm_malloc(size);
-    // }
     void *oldptr = ptr;
     void *newptr;
     size_t copySize;
@@ -282,98 +266,90 @@ static void *find_fit(size_t asize)
     return NULL; /* No fit */
 }
 
-
-//// next_fit
-// static void *find_fit(size_t asize)
-// {
-//     /* first-fit search */
-    
-//     char *new_bp;
-//     new_bp = find_nextp;
-
-//     // Search from next_fit to the end of the heap
-//     for (; GET_SIZE(HDRP(find_nextp)) > 0; find_nextp = NEXT_BLKP(find_nextp))
-//     {
-//         if (!GET_ALLOC(HDRP(find_nextp)) && (asize <= GET_SIZE(HDRP(find_nextp))))
-//         {
-//             // If a fit is found, return the address the of block pointer
-//             return find_nextp;
-//         }   
-//     }
-//     for (find_nextp = heap_listp; find_nextp != new_bp; find_nextp = NEXT_BLKP(find_nextp))
-//     {
-//         if (!GET_ALLOC(HDRP(find_nextp)) && (asize <= GET_SIZE(HDRP(find_nextp))))
-//         {
-//             // If a fit is found, return the address the of block pointer
-//             return find_nextp;
-//         }
-//     }
-//     return NULL; /* No fit */
-// }
-
-
 static void place(void *bp, size_t asize)
 {
     size_t csize = GET_SIZE(HDRP(bp));
-    // removeBlock(bp);
+    removeBlock(bp);
     if ((csize - asize) >= (2 * DSIZE)) // Header와 footer를 포함하여 최소 4 word 필요 !
     {
-        
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
-
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
-        removeBlock2(bp);
-        // putFreeBlock(bp);
+        putFreeBlock(bp);
     }
     else
     {
-        removeBlock(bp);
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
     }
 }
 
+// // 할당 후 남은 가용 리스트를 루트가 아니라 그대로 앞뒤로 연결하는 방법
+// static void place(void *bp, size_t asize)
+// {
+//     size_t csize = GET_SIZE(HDRP(bp));
+//     // removeBlock(bp);
+//     if ((csize - asize) >= (2 * DSIZE)) // Header와 footer를 포함하여 최소 4 word 필요 !
+//     {
+        
+//         PUT(HDRP(bp), PACK(asize, 1));
+//         PUT(FTRP(bp), PACK(asize, 1));
+//         bp = NEXT_BLKP(bp);
+
+//         PUT(HDRP(bp), PACK(csize - asize, 0));
+//         PUT(FTRP(bp), PACK(csize - asize, 0));
+//         removeBlock2(bp);
+//         // putFreeBlock(bp);
+//     }
+//     else
+//     {
+//         removeBlock(bp);
+//         PUT(HDRP(bp), PACK(csize, 1));
+//         PUT(FTRP(bp), PACK(csize, 1));
+//     }
+// }
+
+
 
 // 새로 반환되거나 생성된 가용 블록을 가용리스트 맨 앞에 추가한다.
 void putFreeBlock(void *bp){
     PREP(bp) = NULL;
-    SUCP(bp) = free_listp; 
+    SUCP(bp) = free_listp;
     PREP(free_listp) = bp;
     free_listp = bp;
 }
 
-// // 항상 가용리스트 맨 뒤에 프롤로그 블록이 존재하고 있기 때문에 조건을 간소화할 수 있다.
-// void removeBlock(void *bp){
-
-//     // 첫번째 블럭을 없앨 때
-//     if (bp == free_listp){
-//         PREP(SUCP(bp)) = NULL;
-//         free_listp = SUCP(bp);
-//     }
-//     // 앞 뒤 모두 있을 때
-//     else{
-//         SUCP(PREP(bp)) = SUCP(bp);
-//         PREP(SUCP(bp)) = PREP(bp);
-//     }
-// }
-
-void removeBlock2(void *bp){
+// 항상 가용리스트 맨 뒤에 프롤로그 블록이 존재하고 있기 때문에 조건을 간소화할 수 있다.
+void removeBlock(void *bp){
 
     // 첫번째 블럭을 없앨 때
-    if (PREV_BLKP(bp) == free_listp){ // 루트일 떄
-        PREP(SUCP(PREV_BLKP(bp))) = bp; 
-        free_listp = bp;
-        SUCP(bp) = SUCP(PREV_BLKP(bp));
-        PREP(bp) = NULL;
+    if (bp == free_listp){
+        PREP(SUCP(bp)) = NULL;
+        free_listp = SUCP(bp);
     }
     // 앞 뒤 모두 있을 때
     else{
-        SUCP(PREP(PREV_BLKP(bp))) = bp;
-        PREP(SUCP(PREV_BLKP(bp))) = bp;
-        SUCP(bp) = SUCP(PREV_BLKP(bp));
-        PREP(bp) = PREP(PREV_BLKP(bp));
+        SUCP(PREP(bp)) = SUCP(bp);
+        PREP(SUCP(bp)) = PREP(bp);
     }
 }
+
+// void removeBlock2(void *bp){
+
+//     // 첫번째 블럭을 없앨 때
+//     if (PREV_BLKP(bp) == free_listp){ // 루트일 떄
+//         PREP(SUCP(PREV_BLKP(bp))) = bp; 
+//         free_listp = bp;
+//         SUCP(bp) = SUCP(PREV_BLKP(bp));
+//         PREP(bp) = NULL;
+//     }
+//     // 앞 뒤 모두 있을 때
+//     else{
+//         SUCP(PREP(PREV_BLKP(bp))) = bp;
+//         PREP(SUCP(PREV_BLKP(bp))) = bp;
+//         SUCP(bp) = SUCP(PREV_BLKP(bp));
+//         PREP(bp) = PREP(PREV_BLKP(bp));
+//     }
+// }
